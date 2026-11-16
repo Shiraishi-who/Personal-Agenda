@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7f5">
+    <title>Personal Agenda</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main id="login-screen" class="login-screen">
+      <section class="login-card">
+        <a class="wordmark" href="#" aria-label="Personal Agenda">
+          <span class="brand-icon">P</span>
+          <span>personal<span class="wordmark-light">agenda</span></span>
+        </a>
+        <div class="login-intro">
+          <p class="overline">YOUR SPACE TO MOVE FORWARD</p>
+          <h1>Make today<br>count.</h1>
+          <p>One calm place for your plans, priorities, and progress.</p>
+        </div>
+        <form id="login-form" class="login-form">
+          <label for="login-email">Email address</label>
+          <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" placeholder="Enter any password" autocomplete="current-password" required>
+          <p id="login-error" class="inline-error" role="alert" hidden></p>
+          <button class="button button-primary login-submit" type="submit">Open my workspace <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="login-note">Local demo: your email opens a separate workspace on this device. No password is stored or verified.</p>
+      </section>
+      <aside class="login-art" aria-label="A preview of your workspace">
+        <div class="art-top"><span class="live-dot"></span> A LITTLE MORE FOCUS, EVERY DAY</div>
+        <div class="art-copy">
+          <p class="overline">LESS NOISE. MORE MOMENTUM.</p>
+          <h2>Small steps<br>add up to<br><em>big things.</em></h2>
+        </div>
+        <div class="art-card">
+          <div class="art-card-head"><span>Today&apos;s focus</span><span class="art-date">01 / 03</span></div>
+          <div class="art-task"><span class="art-check">✓</span><span>Outline the project plan</span><span class="art-tag">DONE</span></div>
+          <div class="art-task"><span class="art-check"></span><span>Make time for deep work</span></div>
+          <div class="art-task"><span class="art-check"></span><span>Wrap up and reflect</span></div>
+          <div class="art-progress"><span></span></div>
+          <div class="art-foot"><span>Good pace</span><span>1 of 3 complete</span></div>
+        </div>
+        <p class="art-caption">A thoughtful dashboard for the work that matters to you.</p>
+      </aside>
+    </main>
+
+    <div id="app-shell" class="app-shell" hidden>
+      <aside class="sidebar">
+        <a class="wordmark sidebar-brand" href="#" aria-label="Personal Agenda home">
+          <span class="brand-icon">P</span>
+          <span>personal<span class="wordmark-light">agenda</span></span>
+        </a>
+        <p class="nav-caption">WORKSPACE</p>
+        <nav class="main-nav" aria-label="Main navigation">
+          <button class="nav-item is-active" data-view="overview" type="button"><span class="nav-icon">⌂</span>Overview</button>
+          <button class="nav-item" data-view="calendar" type="button"><span class="nav-icon">▦</span>Calendar</button>
+          <button class="nav-item" data-view="tasks" type="button"><span class="nav-icon">✓</span>Tasks<span id="nav-task-count" class="nav-count"></span></button>
+          <button class="nav-item" data-view="board" type="button"><span class="nav-icon">▤</span>Board</button>
+          <button class="nav-item" data-view="activity" type="button"><span class="nav-icon">↗</span>Monitoring</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <button class="nav-item" data-view="settings" type="button"><span class="nav-icon">⚙</span>Settings</button>
+          <div class="local-status"><span class="live-dot"></span><span>Saved on this device</span></div>
+          <button id="sidebar-account" class="account-chip" type="button" title="Sign out">
+            <span id="sidebar-avatar" class="avatar">A</span>
+            <span class="account-info"><strong id="sidebar-name">Your account</strong><small>Personal workspace</small></span>
+            <span class="account-menu" aria-hidden="true">···</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="main-column">
+        <header class="topbar">
+          <label class="search-field">
+            <span aria-hidden="true">⌕</span>
+            <input id="global-search" type="search" placeholder="Search your tasks" aria-label="Search tasks">
+            <kbd>⌘ K</kbd>
+          </label>
+          <div class="topbar-actions">
+            <span id="topbar-date" class="topbar-date"></span>
+            <button id="topbar-add-task" class="button button-primary" data-action="new-task" type="button"><span aria-hidden="true">＋</span> New task</button>
+            <button id="topbar-avatar" class="avatar topbar-avatar" type="button" aria-label="Open settings">A</button>
+          </div>
+        </header>
+
+        <main class="content">
+          <section class="view is-visible" data-panel="overview">
+            <div class="page-heading">
+              <div><p id="today-label" class="overline"></p><h1 id="greeting">Good morning</h1><p class="page-subtitle">A clear view of what matters today.</p></div>
+              <button class="button button-secondary" data-action="today" type="button">View calendar <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="stats-grid">
+              <article class="stat-card"><div class="stat-label">OPEN TASKS <span class="stat-symbol symbol-violet">◷</span></div><strong id="stat-open" class="stat-value">0</strong><span class="stat-note">Still in motion</span></article>
+              <article class="stat-card"><div class="stat-label">COMPLETED THIS WEEK <span class="stat-symbol symbol-green">✓</span></div><strong id="stat-completed" class="stat-value">0</strong><span class="stat-note">A little progress adds up</span></article>
+              <article class="stat-card"><div class="stat-label">UPCOMING <span class="stat-symbol symbol-amber">▦</span></div><strong id="stat-upcoming" class="stat-value">0</strong><span class="stat-note">Due in the next 7 days</span></article>
+              <article class="stat-card"><div class="stat-label">OVERDUE <span class="stat-symbol symbol-rose">!</span></div><strong id="stat-overdue" class="stat-value">0</strong><span class="stat-note">Ready for a fresh look</span></article>
+            </div>
+            <div class="overview-grid">
+              <article class="panel progress-panel">
+                <div class="panel-heading"><div><p class="overline">YOUR WEEK</p><h2>Progress, at a glance</h2></div><span id="week-summary" class="soft-pill">THIS WEEK</span></div>
+                <div id="weekly-chart" class="weekly-chart" aria-label="Tasks completed during the last seven days"></div>
+                <div class="chart-foot"><span><i class="legend-dot"></i>Tasks completed</span><span id="weekly-total">0 complete</span></div>
+              </article>
+              <article class="panel focus-panel">
+                <div class="panel-heading"><div><p class="overline">NEXT UP</p><h2>Today&apos;s focus</h2></div><button class="icon-button" data-view="tasks" type="button" aria-label="See all tasks">→</button></div>
+                <div id="focus-list" class="focus-list"></div>
+              </article>
+            </div>
+            <article class="panel recent-panel">
+              <div class="panel-heading"><div><p class="overline">KEEP IT MOVING</p><h2>Recent tasks</h2></div><button class="button button-quiet" data-view="tasks" type="button">See all tasks <span aria-hidden="true">→</span></button></div>
+              <div id="recent-list" class="task-list compact-list"></div>
+            </article>
+          </section>
+
+          <section class="view" data-panel="calendar" hidden>
+            <div class="page-heading"><div><p class="overline">MAKE SPACE FOR WHAT&apos;S NEXT</p><h1>Calendar</h1><p class="page-subtitle">Plans and due dates, together in one view.</p></div><button class="button button-primary" data-action="new-event" type="button">＋ Add plan</button></div>
+            <div class="panel calendar-panel">
+              <div class="calendar-toolbar"><div class="month-controls"><button id="month-prev" class="icon-button" type="button" aria-label="Previous month">‹</button><button id="month-today" class="button button-quiet" type="button">Today</button><button id="month-next" class="icon-button" type="button" aria-label="Next month">›</button><h2 id="month-label"></h2></div><span class="calendar-hint">Choose a day to add a plan</span></div>
+              <div class="calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+              <div id="calendar-grid" class="calendar-grid"></div>
+            </div>
+            <article class="panel upcoming-panel"><div class="panel-heading"><div><p class="overline">ON THE HORIZON</p><h2>Upcoming plans</h2></div></div><div id="upcoming-list" class="upcoming-list"></div></article>
+          </section>
+
+          <section class="view" data-panel="tasks" hidden>
+            <div class="page-heading"><div><p class="overline">ONE STEP AT A TIME</p><h1>Tasks</h1><p class="page-subtitle">Keep track of the details and celebrate the check-offs.</p></div><button class="button button-primary" data-action="new-task" type="button">＋ New task</button></div>
+            <div class="task-toolbar"><div class="filter-pills" role="group" aria-label="Filter task status"><button class="filter-pill is-selected" data-filter="all" type="button">All <span id="filter-all-count"></span></button><button class="filter-pill" data-filter="open" type="button">Open <span id="filter-open-count"></span></button><button class="filter-pill" data-filter="done" type="button">Done <span id="filter-done-count"></span></button></div><label class="select-filter">Priority<select id="priority-filter"><option value="all">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select></label></div>
+            <div id="task-list" class="panel task-list"></div>
+            <p id="task-empty" class="empty-message" hidden>No tasks match this view. Add a task to get started.</p>
+          </section>
+
+          <section class="view" data-panel="board" hidden>
+            <div class="page-heading"><div><p class="overline">SEE THE WHOLE PICTURE</p><h1>Task board</h1><p class="page-subtitle">Move a task along as the work comes together.</p></div><button class="button button-primary" data-action="new-task" type="button">＋ New task</button></div>
+            <div class="board-grid"><section class="board-column" data-status="todo"><header><span class="column-mark mark-todo"></span><h2>To do</h2><span id="count-todo" class="column-count">0</span></header><div id="board-todo" class="board-list"></div></section><section class="board-column" data-status="doing"><header><span class="column-mark mark-doing"></span><h2>In progress</h2><span id="count-doing" class="column-count">0</span></header><div id="board-doing" class="board-list"></div></section><section class="board-column" data-status="done"><header><span class="column-mark mark-done"></span><h2>Done</h2><span id="count-done" class="column-count">0</span></header><div id="board-done" class="board-list"></div></section></div>
+          </section>
+
+          <section class="view" data-panel="activity" hidden>
+            <div class="page-heading"><div><p class="overline">A MOMENT TO REFLECT</p><h1>Monitoring</h1><p class="page-subtitle">Notice your progress without losing sight of your pace.</p></div></div>
+            <div class="stats-grid monitor-stats"><article class="stat-card"><div class="stat-label">TASKS FINISHED <span class="stat-symbol symbol-green">✓</span></div><strong id="monitor-done" class="stat-value">0</strong><span class="stat-note">All-time completions</span></article><article class="stat-card"><div class="stat-label">COMPLETION RATE <span class="stat-symbol symbol-violet">↗</span></div><strong id="monitor-rate" class="stat-value">0%</strong><span class="stat-note">Of all tasks created</span></article><article class="stat-card"><div class="stat-label">STILL OPEN <span class="stat-symbol symbol-amber">◷</span></div><strong id="monitor-open" class="stat-value">0</strong><span class="stat-note">Work in your queue</span></article></div>
+            <article class="panel monitor-panel"><div class="panel-heading"><div><p class="overline">LAST 7 DAYS</p><h2>Your weekly rhythm</h2></div><span id="monitor-week-total" class="soft-pill">0 COMPLETE</span></div><div id="monitor-chart" class="weekly-chart monitor-chart"></div></article>
+            <article class="panel"><div class="panel-heading"><div><p class="overline">ACTIVITY</p><h2>Recently updated</h2></div></div><div id="activity-list" class="task-list compact-list"></div></article>
+          </section>
+
+          <section class="view" data-panel="settings" hidden>
+            <div class="page-heading"><div><p class="overline">MAKE IT YOURS</p><h1>Settings</h1><p class="page-subtitle">Your profile and preferences stay on this device.</p></div></div>
+            <form id="settings-form" class="panel settings-panel"><div class="settings-section"><p class="overline">ACCOUNT</p><h2>Your profile</h2><p class="settings-help">Your email selects your local workspace and can&apos;t be changed here.</p><label for="profile-name">Display name</label><input id="profile-name" type="text" maxlength="60" required><label for="profile-email">Email address</label><input id="profile-email" type="email" readonly></div><div class="settings-section preferences"><p class="overline">PREFERENCES</p><h2>Make yourself at home</h2><label class="preference-row" for="dark-mode"><span><strong>Dark appearance</strong><small>Give your workspace a softer evening glow.</small></span><input id="dark-mode" type="checkbox"></label></div>            <div class="settings-actions"><button class="button button-primary" type="submit">Save profile</button><button id="reset-data" class="button button-danger" type="button">Restore sample tasks</button><button id="settings-signout" class="button button-quiet" type="button">Sign out</button></div><p class="storage-note">This is a local demo, not a secure account system. Your data lives in this browser&apos;s local storage and won&apos;t sync to other devices.</p></form>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <dialog id="task-dialog" class="modal">
+      <form id="task-form" method="dialog">
+        <div class="modal-heading"><div><p class="overline">TASK DETAILS</p><h2 id="task-dialog-title">New task</h2></div><button class="icon-button" type="button" data-close aria-label="Close dialog">×</button></div>
+        <label for="task-title">Task name</label><input id="task-title" name="title" maxlength="120" placeholder="What would you like to get done?" required>
+        <div class="form-pair"><div><label for="task-project">Project or area</label><input id="task-project" name="project" maxlength="60" placeholder="Personal"></div><div><label for="task-date">Deadline date</label><input id="task-date" name="dueDate" type="date"></div></div>
+        <div class="form-pair"><div><label for="task-time">Deadline time (required with a date)</label><input id="task-time" name="dueTime" type="time"></div><div><label for="task-priority">Priority</label><select id="task-priority" name="priority"><option>Medium</option><option>High</option><option>Low</option></select></div></div>
+        <label for="task-status">Status</label><select id="task-status" name="status"><option value="todo">To do</option><option value="doing">In progress</option><option value="done">Done</option></select>
+        <label for="task-notes">Task info</label><textarea id="task-notes" name="notes" rows="4" maxlength="600" placeholder="Add context, links, or the next small step..."></textarea>
+        <div class="modal-actions"><button class="button button-quiet" type="button" data-close>Cancel</button><button class="button button-primary" type="submit">Save task</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="event-dialog" class="modal">
+      <form id="event-form" method="dialog">
+        <div class="modal-heading"><div><p class="overline">CALENDAR PLAN</p><h2>Add a plan</h2></div><button class="icon-button" type="button" data-close aria-label="Close dialog">×</button></div>
+        <label for="event-title">What&apos;s happening?</label><input id="event-title" name="title" maxlength="100" placeholder="A moment you want to make time for" required>
+        <div class="form-pair"><div><label for="event-date">Date</label><input id="event-date" name="date" type="date" required></div><div><label for="event-time">Time</label><input id="event-time" name="time" type="time"></div></div>
+        <label for="event-note">A note (optional)</label><textarea id="event-note" name="note" rows="3" maxlength="300" placeholder="A little context"></textarea>
+        <div class="modal-actions"><button class="button button-quiet" type="button" data-close>Cancel</button><button class="button button-primary" type="submit">Save plan</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="detail-dialog" class="modal detail-modal">
+      <div class="modal-heading"><div><p class="overline">TASK DETAILS</p><h2 id="detail-title"></h2></div><button class="icon-button" type="button" data-close aria-label="Close dialog">×</button></div>
+      <div id="detail-body" class="detail-body"></div>
+      <div class="modal-actions"><button id="detail-delete" class="button button-danger" type="button">Delete task</button><button id="detail-edit" class="button button-primary" type="button">Edit task</button></div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
