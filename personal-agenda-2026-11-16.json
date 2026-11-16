@@ -1,0 +1,148 @@
+{
+  "format": "personal-agenda",
+  "version": 1,
+  "exportedAt": "2026-11-16T08:11:41.878Z",
+  "workspace": {
+    "profile": {
+      "email": "qa-recur@example.test",
+      "name": "Qa Recur"
+    },
+    "tasks": [
+      {
+        "id": "task-1794816627658-o5ws5m",
+        "title": "Recurring validation task",
+        "project": "",
+        "dueDate": "2026-11-24",
+        "dueTime": "10:15",
+        "priority": "Medium",
+        "status": "todo",
+        "tags": [
+          "Work",
+          "QA"
+        ],
+        "recurrence": "weekly",
+        "subtasks": [
+          {
+            "id": "check-1794816627658-n1bpyg",
+            "title": "First step",
+            "done": true
+          },
+          {
+            "id": "check-1794816627658-2zbvjo",
+            "title": "Second step",
+            "done": false
+          }
+        ],
+        "notes": "",
+        "createdAt": 1794816627658,
+        "updatedAt": 1794816627759,
+        "completedAt": "",
+        "recurringFromId": "task-1794816627593-ujiyjm"
+      },
+      {
+        "id": "task-1794816627593-ujiyjm",
+        "title": "Recurring validation task",
+        "project": "",
+        "dueDate": "2026-11-17",
+        "dueTime": "10:15",
+        "priority": "Medium",
+        "status": "done",
+        "tags": [
+          "Work",
+          "QA"
+        ],
+        "recurrence": "weekly",
+        "subtasks": [
+          {
+            "id": "check-1794816627593-v663gz",
+            "title": "First step",
+            "done": false
+          },
+          {
+            "id": "check-1794816627593-i8oo7p",
+            "title": "Second step",
+            "done": false
+          }
+        ],
+        "notes": "",
+        "createdAt": 1794816627593,
+        "updatedAt": 1794816627658,
+        "completedAt": "2026-11-16"
+      },
+      {
+        "id": "sample-plan",
+        "title": "Sketch out the week",
+        "project": "Personal",
+        "dueDate": "2026-11-16",
+        "dueTime": "09:30",
+        "priority": "High",
+        "status": "doing",
+        "notes": "Start with the three things that would make this week feel meaningful.",
+        "tags": [
+          "Planning"
+        ],
+        "subtasks": [],
+        "recurrence": "none",
+        "createdAt": 1794816327326,
+        "updatedAt": 1794816327326,
+        "completedAt": ""
+      },
+      {
+        "id": "sample-walk",
+        "title": "Take a proper lunch break",
+        "project": "Wellbeing",
+        "dueDate": "2026-11-17",
+        "dueTime": "12:30",
+        "priority": "Low",
+        "status": "todo",
+        "notes": "Step outside for a little while.",
+        "tags": [
+          "Wellbeing"
+        ],
+        "subtasks": [],
+        "recurrence": "none",
+        "createdAt": 1794816427326,
+        "updatedAt": 1794816427326,
+        "completedAt": ""
+      },
+      {
+        "id": "sample-notes",
+        "title": "Gather notes for the idea",
+        "project": "Side project",
+        "dueDate": "2026-11-19",
+        "dueTime": "16:00",
+        "priority": "Medium",
+        "status": "todo",
+        "notes": "",
+        "tags": [
+          "Planning"
+        ],
+        "subtasks": [],
+        "recurrence": "none",
+        "createdAt": 1794816527326,
+        "updatedAt": 1794816527326,
+        "completedAt": ""
+      },
+      {
+        "id": "sample-finish",
+        "title": "Close out last week",
+        "project": "Personal",
+        "dueDate": "2026-11-15",
+        "dueTime": "17:00",
+        "priority": "Medium",
+        "status": "done",
+        "notes": "Nice work getting this over the line.",
+        "tags": [],
+        "subtasks": [],
+        "recurrence": "none",
+        "createdAt": 1794816227326,
+        "updatedAt": 1794816587326,
+        "completedAt": "2026-11-15"
+      }
+    ],
+    "events": [],
+    "preferences": {
+      "darkMode": false
+    }
+  }
+}

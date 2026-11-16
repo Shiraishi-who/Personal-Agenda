@@ -3,6 +3,7 @@
 const SESSION_KEY = "personal-agenda.account";
 const DATA_PREFIX = "personal-agenda.workspace.";
 const STATUSES = ["todo", "doing", "done"];
+const RECURRENCES = ["none", "daily", "weekly", "monthly"];
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -12,6 +13,12 @@ function dayKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function validDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function dateOffset(offset) {
@@ -28,10 +35,10 @@ function newWorkspace(email) {
   return {
     profile: { email, name: nameFromEmail(email) },
     tasks: [
-      { id: "sample-plan", title: "Sketch out the week", project: "Personal", dueDate: dateOffset(0), dueTime: "09:30", priority: "High", status: "doing", notes: "Start with the three things that would make this week feel meaningful.", createdAt: Date.now() - 300000, updatedAt: Date.now() - 300000, completedAt: "" },
-      { id: "sample-walk", title: "Take a proper lunch break", project: "Wellbeing", dueDate: dateOffset(1), dueTime: "12:30", priority: "Low", status: "todo", notes: "Step outside for a little while.", createdAt: Date.now() - 200000, updatedAt: Date.now() - 200000, completedAt: "" },
-      { id: "sample-notes", title: "Gather notes for the idea", project: "Side project", dueDate: dateOffset(3), dueTime: "16:00", priority: "Medium", status: "todo", notes: "", createdAt: Date.now() - 100000, updatedAt: Date.now() - 100000, completedAt: "" },
-      { id: "sample-finish", title: "Close out last week", project: "Personal", dueDate: dateOffset(-1), dueTime: "17:00", priority: "Medium", status: "done", notes: "Nice work getting this over the line.", createdAt: Date.now() - 400000, updatedAt: Date.now() - 40000, completedAt: dateOffset(-1) },
+      { id: "sample-plan", title: "Sketch out the week", project: "Personal", dueDate: dateOffset(0), dueTime: "09:30", priority: "High", status: "doing", notes: "Start with the three things that would make this week feel meaningful.", tags: ["Planning"], subtasks: [], recurrence: "none", createdAt: Date.now() - 300000, updatedAt: Date.now() - 300000, completedAt: "" },
+      { id: "sample-walk", title: "Take a proper lunch break", project: "Wellbeing", dueDate: dateOffset(1), dueTime: "12:30", priority: "Low", status: "todo", notes: "Step outside for a little while.", tags: ["Wellbeing"], subtasks: [], recurrence: "none", createdAt: Date.now() - 200000, updatedAt: Date.now() - 200000, completedAt: "" },
+      { id: "sample-notes", title: "Gather notes for the idea", project: "Side project", dueDate: dateOffset(3), dueTime: "16:00", priority: "Medium", status: "todo", notes: "", tags: ["Planning"], subtasks: [], recurrence: "none", createdAt: Date.now() - 100000, updatedAt: Date.now() - 100000, completedAt: "" },
+      { id: "sample-finish", title: "Close out last week", project: "Personal", dueDate: dateOffset(-1), dueTime: "17:00", priority: "Medium", status: "done", notes: "Nice work getting this over the line.", tags: [], subtasks: [], recurrence: "none", createdAt: Date.now() - 400000, updatedAt: Date.now() - 40000, completedAt: dateOffset(-1) },
     ],
     events: [],
     preferences: { darkMode: false },
@@ -51,6 +58,7 @@ let account = null;
 let state = null;
 let activeView = "overview";
 let taskFilter = "all";
+let selectedTag = "all";
 let currentTaskId = null;
 let currentEventId = null;
 let selectedDetailId = null;
@@ -137,7 +145,9 @@ function createButton(label, className, attributes = {}) {
 
 function taskMatches(task) {
   if (!query) return true;
-  return `${task.title} ${task.project} ${task.notes} ${task.priority} ${statusLabel(task.status)}`
+  const checklist = Array.isArray(task.subtasks) ? task.subtasks.map((item) => item.title).join(" ") : "";
+  const tags = Array.isArray(task.tags) ? task.tags.join(" ") : "";
+  return `${task.title} ${task.project} ${task.notes} ${task.priority} ${statusLabel(task.status)} ${tags} ${checklist}`
     .toLocaleLowerCase().includes(query);
 }
 
@@ -165,6 +175,17 @@ function buildTaskRow(task, compact = false) {
   const main = createText("div", "task-main");
   main.append(createText("span", "task-name", task.title));
   main.append(createText("span", "task-project", task.project || "Personal"));
+  const tags = Array.isArray(task.tags) ? task.tags : [];
+  if (tags.length) {
+    const tagList = createText("span", "task-tags");
+    tags.forEach((tag) => tagList.append(createText("span", "tag-chip", tag)));
+    main.append(tagList);
+  }
+  const checklist = Array.isArray(task.subtasks) ? task.subtasks : [];
+  if (checklist.length) {
+    const completed = checklist.filter((item) => item.done).length;
+    main.append(createText("span", "task-checklist-progress", `Checklist ${completed}/${checklist.length}`));
+  }
   row.append(main);
 
   if (!compact) {
@@ -285,7 +306,8 @@ function renderTaskList() {
   const visible = sortedTasks(state.tasks.filter((task) => {
     const matchesStatus = taskFilter === "all" ||
       (taskFilter === "open" ? task.status !== "done" : task.status === "done");
-    return matchesStatus && (priority === "all" || task.priority === priority) && taskMatches(task);
+    const matchesTag = selectedTag === "all" || (Array.isArray(task.tags) && task.tags.includes(selectedTag));
+    return matchesStatus && matchesTag && (priority === "all" || task.priority === priority) && taskMatches(task);
   }));
   $("#task-empty").hidden = visible.length > 0;
   visible.forEach((task) => list.append(buildTaskRow(task)));
@@ -423,11 +445,23 @@ function renderAll() {
   renderWeeklyChart("#weekly-chart", "#weekly-total");
   renderFocus();
   renderRecent();
+  renderTagFilter();
   renderTaskList();
   renderCalendar();
   renderUpcoming();
   renderBoard();
   renderMonitoring();
+}
+
+function renderTagFilter() {
+  const select = $("#tag-filter");
+  if (!select) return;
+  const tags = [...new Set(state.tasks.flatMap((task) => Array.isArray(task.tags) ? task.tags : []))]
+    .sort((a, b) => a.localeCompare(b));
+  if (selectedTag !== "all" && !tags.includes(selectedTag)) selectedTag = "all";
+  select.replaceChildren(new Option("All tags", "all"));
+  tags.forEach((tag) => select.append(new Option(tag, tag)));
+  select.value = selectedTag;
 }
 
 function setView(view) {
@@ -461,6 +495,10 @@ function openTaskDialog(taskId = null) {
   $("#task-time").value = task ? task.dueTime || "" : "";
   $("#task-priority").value = task ? task.priority : "Medium";
   $("#task-status").value = task ? task.status : "todo";
+  $("#task-tags").value = task && Array.isArray(task.tags) ? task.tags.join(", ") : "";
+  $("#task-recurrence").value = task && RECURRENCES.includes(task.recurrence) ? task.recurrence : "none";
+  $("#task-subtasks").value = task && Array.isArray(task.subtasks)
+    ? task.subtasks.map((item) => item.title).join("\n") : "";
   $("#task-notes").value = task ? task.notes || "" : "";
   $("#task-dialog-title").textContent = task ? "Edit task" : "New task";
   $("#task-dialog").showModal();
@@ -485,6 +523,11 @@ function openTaskDetails(taskId) {
   const task = state.tasks.find((item) => item.id === taskId);
   if (!task) return;
   selectedDetailId = task.id;
+  renderTaskDetails(task);
+  $("#detail-dialog").showModal();
+}
+
+function renderTaskDetails(task) {
   $("#detail-title").textContent = task.title;
   const body = $("#detail-body");
   body.replaceChildren();
@@ -492,10 +535,66 @@ function openTaskDetails(taskId) {
   meta.append(createText("span", "priority-badge", task.priority));
   meta.append(createText("span", "status-badge", statusLabel(task.status)));
   meta.append(createText("span", "status-badge", task.project || "Personal"));
+  if (task.recurrence && task.recurrence !== "none") {
+    const labels = { daily: "Repeats daily", weekly: "Repeats weekly", monthly: "Repeats monthly" };
+    meta.append(createText("span", "status-badge", labels[task.recurrence]));
+  }
+  (Array.isArray(task.tags) ? task.tags : []).forEach((tag) => {
+    meta.append(createText("span", "tag-chip", tag));
+  });
   body.append(meta);
   body.append(createText("p", "detail-description" + (task.notes ? "" : " detail-empty"), task.notes || "No extra task info yet."));
   body.append(createText("span", "task-due", dueLabel(task.dueDate, task.status, task.dueTime)));
-  $("#detail-dialog").showModal();
+  const subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+  if (subtasks.length) {
+    const checklist = createText("section", "detail-checklist");
+    const completed = subtasks.filter((item) => item.done).length;
+    checklist.append(createText("h3", "", `Checklist · ${completed}/${subtasks.length}`));
+    subtasks.forEach((item) => {
+      const label = createText("label", `detail-checklist-item${item.done ? " is-checked" : ""}`);
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = Boolean(item.done);
+      checkbox.dataset.subtaskToggle = item.id;
+      checkbox.dataset.taskId = task.id;
+      checkbox.setAttribute("aria-label", `${item.done ? "Uncheck" : "Complete"} ${item.title}`);
+      label.append(checkbox, createText("span", "", item.title));
+      checklist.append(label);
+    });
+    body.append(checklist);
+  }
+}
+
+function nextRecurrenceDate(task) {
+  const date = task.dueDate ? new Date(`${task.dueDate}T12:00:00`) : new Date();
+  if (task.recurrence === "daily") date.setDate(date.getDate() + 1);
+  else if (task.recurrence === "weekly") date.setDate(date.getDate() + 7);
+  else if (task.recurrence === "monthly") {
+    const desiredDay = date.getDate();
+    date.setDate(1);
+    date.setMonth(date.getMonth() + 1);
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    date.setDate(Math.min(desiredDay, lastDay));
+  }
+  return dayKey(date);
+}
+
+function scheduleNextOccurrence(task) {
+  if (!RECURRENCES.includes(task.recurrence) || task.recurrence === "none" || !task.dueDate || !task.dueTime) return false;
+  if (state.tasks.some((item) => item.recurringFromId === task.id)) return false;
+  const nextTask = {
+    ...task,
+    id: makeId("task"),
+    dueDate: nextRecurrenceDate(task),
+    status: "todo",
+    subtasks: (task.subtasks || []).map((item) => ({ ...item, id: makeId("check"), done: false })),
+    recurringFromId: task.id,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    completedAt: "",
+  };
+  state.tasks.unshift(nextTask);
+  return true;
 }
 
 function updateTaskStatus(taskId, status) {
@@ -505,6 +604,7 @@ function updateTaskStatus(taskId, status) {
     task.status = status;
     task.updatedAt = Date.now();
     task.completedAt = status === "done" ? dayKey(new Date()) : "";
+    if (status === "done") scheduleNextOccurrence(task);
   }, status === "done" ? "Task completed. Take a moment to enjoy that." : `Task moved to ${statusLabel(status).toLowerCase()}.`);
 }
 
@@ -528,6 +628,106 @@ function deleteTask(taskId) {
     $("#detail-dialog").close();
     selectedDetailId = null;
   }
+}
+
+function validBackupTask(task) {
+  if (!task || typeof task !== "object") return false;
+  const dateValid = task.dueDate === "" || validDate(task.dueDate);
+  const timeValid = task.dueTime === "" || (typeof task.dueTime === "string" &&
+    /^\d{2}:\d{2}$/.test(task.dueTime) && task.dueTime >= "00:00" && task.dueTime <= "23:59");
+  return typeof task.id === "string" && typeof task.title === "string" &&
+    task.title.length > 0 && task.title.length <= 120 &&
+    typeof task.project === "string" && task.project.length <= 60 &&
+    typeof task.notes === "string" && task.notes.length <= 600 &&
+    typeof task.dueDate === "string" && typeof task.dueTime === "string" &&
+    dateValid && timeValid && STATUSES.includes(task.status) &&
+    ["High", "Medium", "Low"].includes(task.priority) &&
+    RECURRENCES.includes(task.recurrence) &&
+    (task.recurrence === "none" || (dateValid && task.dueDate && timeValid && task.dueTime)) &&
+    Array.isArray(task.tags) && task.tags.length <= 10 &&
+    task.tags.every((tag) => typeof tag === "string" && tag.trim() && tag.length <= 30) &&
+    Array.isArray(task.subtasks) && task.subtasks.length <= 30 &&
+    task.subtasks.every((item) => item && typeof item.id === "string" &&
+      typeof item.title === "string" && item.title.trim() && typeof item.done === "boolean");
+}
+
+function parseBackup(value) {
+  if (!value || value.format !== "personal-agenda" || value.version !== 1 ||
+      !value.workspace || typeof value.workspace !== "object") {
+    throw new Error("This file is not a supported Personal Agenda backup.");
+  }
+  const imported = value.workspace;
+  if (!imported.profile || typeof imported.profile.name !== "string" ||
+      imported.profile.name.length > 60 || !Array.isArray(imported.tasks) ||
+      imported.tasks.length > 1000 || !Array.isArray(imported.events) ||
+      imported.events.length > 1000 || !imported.preferences ||
+      typeof imported.preferences.darkMode !== "boolean" ||
+      !imported.tasks.every(validBackupTask)) {
+    throw new Error("The backup contains invalid or unsupported workspace data.");
+  }
+  const validEvents = imported.events.every((item) => item &&
+    typeof item.id === "string" && typeof item.title === "string" &&
+    typeof item.date === "string" && validDate(item.date) &&
+    (item.time === "" || (/^\d{2}:\d{2}$/.test(item.time) && item.time >= "00:00" && item.time <= "23:59")) &&
+    typeof item.note === "string");
+  if (!validEvents) throw new Error("The backup contains an invalid calendar plan.");
+  if (new Set(imported.tasks.map((task) => task.id)).size !== imported.tasks.length ||
+      new Set(imported.events.map((item) => item.id)).size !== imported.events.length) {
+    throw new Error("The backup contains duplicate workspace record IDs.");
+  }
+  return {
+    profile: { email: account.email, name: imported.profile.name },
+    tasks: imported.tasks,
+    events: imported.events,
+    preferences: { darkMode: imported.preferences.darkMode },
+  };
+}
+
+function exportBackup() {
+  const backup = {
+    format: "personal-agenda",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    workspace: state,
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = createText("a");
+  link.href = url;
+  link.download = `personal-agenda-${dayKey(new Date())}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast("Workspace backup downloaded.");
+}
+
+function importBackup(file) {
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast("Choose a backup file smaller than 2 MB.", "error");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onerror = () => showToast("Could not read the backup file.", "error");
+  reader.onload = () => {
+    let imported;
+    try {
+      imported = parseBackup(JSON.parse(String(reader.result)));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "The backup file could not be validated.", "error");
+      return;
+    }
+    if (!window.confirm("Import this backup and replace the current workspace? This cannot be undone.")) return;
+    const previous = state;
+    state = imported;
+    if (!saveWorkspace()) {
+      state = previous;
+      renderAll();
+      return;
+    }
+    renderAll();
+    showToast("Workspace backup restored.");
+  };
+  reader.readAsText(file);
 }
 
 function loadWorkspace(email) {
@@ -555,6 +755,12 @@ function loadWorkspace(email) {
       notes: typeof task.notes === "string" ? task.notes : "",
       priority: ["High", "Medium", "Low"].includes(task.priority) ? task.priority : "Medium",
       status: STATUSES.includes(task.status) ? task.status : "todo",
+      tags: Array.isArray(task.tags) ? task.tags.filter((tag) => typeof tag === "string").slice(0, 10) : [],
+      subtasks: Array.isArray(task.subtasks) ? task.subtasks
+        .filter((item) => item && typeof item.title === "string")
+        .slice(0, 30)
+        .map((item) => ({ id: typeof item.id === "string" ? item.id : makeId("check"), title: item.title, done: Boolean(item.done) })) : [],
+      recurrence: RECURRENCES.includes(task.recurrence) ? task.recurrence : "none",
       createdAt: typeof task.createdAt === "number" ? task.createdAt : Date.now(),
       updatedAt: typeof task.updatedAt === "number" ? task.updatedAt : Date.now(),
       completedAt: typeof task.completedAt === "string" ? task.completedAt : "",
@@ -577,6 +783,7 @@ function signOut() {
     $("#global-search").value = "";
     query = "";
     taskFilter = "all";
+    selectedTag = "all";
     activeView = "overview";
   } catch (error) {
     showToast("Could not sign out. Check browser storage settings.", "error");
@@ -661,6 +868,23 @@ document.addEventListener("click", (event) => {
   if (event.target.closest("#detail-delete")) deleteTask(selectedDetailId);
 });
 
+document.addEventListener("change", (event) => {
+  const checkbox = event.target.closest("[data-subtask-toggle]");
+  if (!checkbox) return;
+  const task = state.tasks.find((item) => item.id === checkbox.dataset.taskId);
+  const subtask = task && Array.isArray(task.subtasks)
+    ? task.subtasks.find((item) => item.id === checkbox.dataset.subtaskToggle) : null;
+  if (!task || !subtask) return;
+  saveChange(() => {
+    subtask.done = checkbox.checked;
+    task.updatedAt = Date.now();
+  }, "Checklist updated.");
+  if ($("#detail-dialog").open) {
+    const currentTask = state.tasks.find((item) => item.id === checkbox.dataset.taskId);
+    if (currentTask) renderTaskDetails(currentTask);
+  }
+});
+
 $("#task-form").addEventListener("submit", (event) => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
@@ -672,9 +896,36 @@ $("#task-form").addEventListener("submit", (event) => {
     dueTime: String(form.get("dueTime") || ""),
     priority: String(form.get("priority") || "Medium"),
     status: String(form.get("status") || "todo"),
+    tags: [...new Map(String(form.get("tags") || "").split(",")
+      .map((tag) => tag.trim()).filter(Boolean).map((tag) => [tag.toLocaleLowerCase(), tag])).values()],
+    recurrence: String(form.get("recurrence") || "none"),
+    subtasks: String(form.get("subtasks") || "").split(/\r?\n/)
+      .map((title) => title.trim()).filter(Boolean)
+      .filter((title, index, list) => list.findIndex((other) => other.toLocaleLowerCase() === title.toLocaleLowerCase()) === index)
+      .map((title) => ({ id: makeId("check"), title, done: false })),
     notes: String(form.get("notes") || "").trim(),
   };
   if (!values.title) return;
+  if (values.tags.length > 10) {
+    showToast("Add no more than 10 tags to a task.", "error");
+    return;
+  }
+  if (values.tags.some((tag) => tag.length > 30)) {
+    showToast("Keep each task tag to 30 characters or fewer.", "error");
+    return;
+  }
+  if (values.subtasks.length > 30) {
+    showToast("Add no more than 30 checklist items to a task.", "error");
+    return;
+  }
+  if (!RECURRENCES.includes(values.recurrence)) {
+    showToast("Choose a valid repeat interval.", "error");
+    return;
+  }
+  if (values.recurrence !== "none" && (!values.dueDate || !values.dueTime)) {
+    showToast("Repeating tasks need a deadline date and time.", "error");
+    return;
+  }
   if (values.dueTime && !values.dueDate) {
     showToast("Choose a deadline date when adding a deadline time.", "error");
     return;
@@ -684,20 +935,32 @@ $("#task-form").addEventListener("submit", (event) => {
     return;
   }
   const task = state.tasks.find((item) => item.id === currentTaskId);
+  if (task) {
+    const previousSubtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+    values.subtasks = values.subtasks.map((item) => {
+      const previous = previousSubtasks.find((old) => old.title.toLocaleLowerCase() === item.title.toLocaleLowerCase());
+      return previous ? { ...item, id: previous.id, done: Boolean(previous.done) } : item;
+    });
+  }
   let saved;
   if (task) {
     saved = saveChange(() => {
+      const shouldSchedule = task.status !== "done" && values.status === "done";
       Object.assign(task, values, {
         updatedAt: Date.now(),
         completedAt: values.status === "done" ? task.completedAt || dayKey(new Date()) : "",
       });
+      if (shouldSchedule) scheduleNextOccurrence(task);
     }, "Task details saved.");
   } else {
     const newTask = {
       id: makeId("task"), ...values, createdAt: Date.now(), updatedAt: Date.now(),
       completedAt: values.status === "done" ? dayKey(new Date()) : "",
     };
-    saved = saveChange(() => state.tasks.unshift(newTask), "A new task is on your list.");
+    saved = saveChange(() => {
+      state.tasks.unshift(newTask);
+      if (newTask.status === "done") scheduleNextOccurrence(newTask);
+    }, "A new task is on your list.");
   }
   if (saved) {
     $("#task-dialog").close();
@@ -763,6 +1026,16 @@ $("#reset-data").addEventListener("click", () => {
 });
 
 $("#priority-filter").addEventListener("change", renderTaskList);
+$("#tag-filter").addEventListener("change", (event) => {
+  selectedTag = event.currentTarget.value;
+  renderTaskList();
+});
+$("[data-panel='settings'] #export-data").addEventListener("click", exportBackup);
+$("#import-data").addEventListener("click", () => $("#import-file").click());
+$("#import-file").addEventListener("change", (event) => {
+  importBackup(event.currentTarget.files[0]);
+  event.currentTarget.value = "";
+});
 $$("[data-filter]").forEach((button) => {
   button.addEventListener("click", () => {
     taskFilter = button.dataset.filter;
